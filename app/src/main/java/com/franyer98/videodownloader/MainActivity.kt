@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
                 currentVideoInfo = info
 
                 val formats = info.formats?.mapNotNull { f ->
-                    val note = f.formatNote ?: f.resolution ?: "N/A"
+                    val note = f.formatNote ?: "N/A"
                     val ext = f.ext ?: ""
                     val id = f.formatId ?: return@mapNotNull null
                     VideoFormat(id, "$note · $ext (id: $id)")
