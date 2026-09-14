@@ -12,6 +12,7 @@ import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import com.yausername.youtubedl_android.mapper.VideoInfo
 import com.yausername.ffmpeg.FFmpeg
+import com.yausername.aria2c.Aria2c
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 YoutubeDL.getInstance().init(applicationContext)
                 FFmpeg.getInstance().init(applicationContext)
+                Aria2c.getInstance().init(applicationContext)
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "Error al iniciar yt-dlp: ${e.message}", Toast.LENGTH_LONG).show()
@@ -105,6 +107,10 @@ class MainActivity : AppCompatActivity() {
                 val request = YoutubeDLRequest(url).apply {
                     addOption("-f", format.formatId)
                     addOption("-o", "${outputDir.absolutePath}/%(title)s.%(ext)s")
+                    // aria2c: descarga multi-conexión (16 conexiones), suele ser
+                    // notablemente más rápido que el downloader HTTP simple por defecto
+                    addOption("--downloader", "libaria2c.so")
+                    addOption("--downloader-args", "aria2c:\"-x 16 -s 16 -k 1M\"")
                 }
 
                 YoutubeDL.getInstance().execute(request) { progress, _, line ->
