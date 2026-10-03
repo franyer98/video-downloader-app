@@ -60,6 +60,13 @@ class MainActivity : AppCompatActivity() {
         btnActualizar.setOnClickListener { actualizarMotor() }
         btnLimpiar.setOnClickListener { Gestor.limpiarTerminadas() }
 
+        val swPrivado = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.swPrivado)
+        swPrivado.isChecked = Privado.activado(this)
+        swPrivado.setOnCheckedChangeListener { _, si -> Privado.activar(this, si) }
+        findViewById<MaterialButton>(R.id.btnPrivado).setOnClickListener {
+            startActivity(Intent(this, PrivadoActivity::class.java))
+        }
+
         pedirPermisos()
         findViewById<TextView>(R.id.tvVersion).text = "Versión " +
             packageManager.getPackageInfo(packageName, 0).versionName
@@ -155,7 +162,7 @@ class MainActivity : AppCompatActivity() {
                     .setTitle(info.title ?: "Elige la calidad")
                     .setItems(opciones.map { it.etiqueta }.toTypedArray()) { _, i ->
                         val o = opciones[i]
-                        DescargaService.agregar(this@MainActivity, url, o.calidad, o.formato)
+                        DescargaService.agregar(this@MainActivity, url, o.calidad, o.formato, Privado.activado(this@MainActivity))
                         Toast.makeText(this@MainActivity, "Agregado a descargas", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Cancelar", null)
@@ -167,7 +174,7 @@ class MainActivity : AppCompatActivity() {
                     .setTitle("No se pudieron leer las calidades")
                     .setMessage("$detalle\n\n¿Intento descargarlo igual en la mejor calidad?")
                     .setPositiveButton("Descargar igual") { _, _ ->
-                        DescargaService.agregar(this@MainActivity, url, Calidad.MEJOR)
+                        DescargaService.agregar(this@MainActivity, url, Calidad.MEJOR, privado = Privado.activado(this@MainActivity))
                     }
                     .setNegativeButton("Cancelar", null)
                     .show()
@@ -222,8 +229,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pintar(v: View, d: Descarga) {
-        v.findViewById<TextView>(R.id.tvTitulo).text = d.titulo
-        pintarMiniatura(v.findViewById(R.id.ivMiniatura), d.miniatura)
+        // Las privadas no muestran nombre ni imagen en la lista
+        v.findViewById<TextView>(R.id.tvTitulo).text = if (d.privado) "🔒 Video privado" else d.titulo
+        if (!d.privado) pintarMiniatura(v.findViewById(R.id.ivMiniatura), d.miniatura)
         val progreso = v.findViewById<LinearProgressIndicator>(R.id.progreso)
         val tvEstado = v.findViewById<TextView>(R.id.tvEstado)
         val btn = v.findViewById<MaterialButton>(R.id.btnAccion)
@@ -295,6 +303,7 @@ class MainActivity : AppCompatActivity() {
             d.velocidad?.let { add(it) }
             if (d.eta > 0) add("faltan ${formatoTiempo(d.eta)}")
         }.joinToString(" · ")
+        d.estado == Estado.LISTO && d.privado -> listOfNotNull(d.mensaje, d.tamano).joinToString(" · ")
         d.estado == Estado.LISTO -> listOfNotNull(
             listOfNotNull(d.mensaje, d.tamano).joinToString(" · "), d.detalle
         ).joinToString("\n")

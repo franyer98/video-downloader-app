@@ -47,6 +47,20 @@
             android:layout_height="wrap_content"
             android:text="Pegar del portapapeles" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swPrivado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="🔒 Guardar en carpeta privada" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrivado"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Abrir carpeta privada" />
+
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDescargar"

@@ -38,6 +38,17 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PrivadoActivity"
+            android:exported="false"
+            android:excludeFromRecents="true" />
+
+        <activity
+            android:name=".ReproductorActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:theme="@style/Theme.DescargaVideos" />
+
         <service
             android:name=".DescargaService"
             android:exported="false"

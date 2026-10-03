@@ -21,6 +21,8 @@ data class Descarga(
     val calidad: Calidad,
     /** Selector de formato elegido por el usuario; null = el mejor disponible. */
     val formato: String? = null,
+    /** Se guarda en la carpeta privada en vez de la galería. */
+    val privado: Boolean = false,
     val titulo: String = url,
     val estado: Estado = Estado.EN_COLA,
     val progreso: Int = -1,
@@ -63,8 +65,8 @@ object Gestor {
         }
     }
 
-    fun nueva(url: String, calidad: Calidad, formato: String? = null): Descarga {
-        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad, formato)
+    fun nueva(url: String, calidad: Calidad, formato: String? = null, privado: Boolean = false): Descarga {
+        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad, formato, privado)
         _descargas.update { listOf(d) + it }
         return d
     }

@@ -49,9 +49,10 @@ class DescargaService : Service() {
         private const val NOTIF_ID = 1
         private const val NOTIF_FIN_ID = 2
 
-        fun agregar(ctx: Context, url: String, calidad: Calidad, formato: String? = null) = enviar(ctx,
+        fun agregar(ctx: Context, url: String, calidad: Calidad, formato: String? = null, privado: Boolean = false) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_AGREGAR)
-                .putExtra("url", url).putExtra("calidad", calidad.name).putExtra("formato", formato))
+                .putExtra("url", url).putExtra("calidad", calidad.name).putExtra("formato", formato)
+                .putExtra("privado", privado))
 
         fun cancelar(ctx: Context, id: String) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_CANCELAR).putExtra("id", id))
@@ -97,13 +98,13 @@ class DescargaService : Service() {
                 val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
                 val calidad = runCatching { Calidad.valueOf(intent.getStringExtra("calidad")!!) }
                     .getOrDefault(Calidad.MEJOR)
-                lanzar(Gestor.nueva(url, calidad, intent.getStringExtra("formato")))
+                lanzar(Gestor.nueva(url, calidad, intent.getStringExtra("formato"), intent.getBooleanExtra("privado", false)))
             }
             ACCION_CANCELAR -> intent.getStringExtra("id")?.let { cancelarDescarga(it) }
             ACCION_REINTENTAR -> intent.getStringExtra("id")?.let { id ->
                 Gestor.obtener(id)?.let { d ->
                     Gestor.quitar(id)
-                    lanzar(Gestor.nueva(d.url, d.calidad, d.formato))
+                    lanzar(Gestor.nueva(d.url, d.calidad, d.formato, d.privado))
                 }
             }
         }
@@ -217,13 +218,19 @@ class DescargaService : Service() {
                 carpetaTemp.listFiles()?.filter { it.isFile }?.maxByOrNull { it.length() }?.let { analizar(it) }
             }
             Gestor.actualizar(d.id) { it.copy(mensaje = "Guardando...", detalle = detalle) }
-            val guardados = kotlinx.coroutines.withContext(Dispatchers.IO) { moverADescargas(carpetaTemp) }
+            val guardados = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                if (d.privado) Privado.guardar(applicationContext, carpetaTemp) else moverADescargas(carpetaTemp)
+            }
             if (guardados.isNotEmpty()) {
                 listasEnSesion++
                 Gestor.actualizar(d.id) {
                     it.copy(estado = Estado.LISTO, titulo = guardados.first().first, progreso = 100,
                         tamano = Gestor.formatoBytes(guardados.sumOf { g -> g.second }), velocidad = null,
-                        mensaje = if (d.calidad == Calidad.AUDIO) "✅ Guardado en Música/DescargaVideos" else "✅ Guardado en la galería (Películas/DescargaVideos)")
+                        mensaje = when {
+                            d.privado -> "🔒 Guardado en la carpeta privada"
+                            d.calidad == Calidad.AUDIO -> "✅ Guardado en Música/DescargaVideos"
+                            else -> "✅ Guardado en la galería (Películas/DescargaVideos)"
+                        })
                 }
             } else {
                 Gestor.actualizar(d.id) {
@@ -402,7 +409,7 @@ class DescargaService : Service() {
             append("${activas.size} descargando")
             if (enCola > 0) append(" · $enCola en cola")
         }
-        val miniatura = activas.firstNotNullOfOrNull { it.miniatura }?.let { iconoNotificacion(it) }
+        val miniatura = activas.filterNot { it.privado }.firstNotNullOfOrNull { it.miniatura }?.let { iconoNotificacion(it) }
         return NotificationCompat.Builder(this, CANAL)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setLargeIcon(miniatura)
@@ -454,8 +461,8 @@ class DescargaService : Service() {
                 NotificationCompat.Builder(this, CANAL_FIN)
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle("Descargas terminadas")
-                    .setContentText(if (n == 1) "1 archivo guardado en la galería"
-                        else "$n archivos guardados en la galería")
+                    .setContentText(if (n == 1) "1 descarga terminada"
+                        else "$n descargas terminadas")
                     .setAutoCancel(true)
                     .setContentIntent(abrirApp())
                     .build())
