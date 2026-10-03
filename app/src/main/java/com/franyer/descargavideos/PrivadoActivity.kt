@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
@@ -31,6 +32,13 @@ class PrivadoActivity : AppCompatActivity() {
     private var abriendoReproductor = false
     /** El PIN del teléfono abre otra pantalla; mientras tanto no hay que cerrar. */
     private var autenticando = false
+    /** El selector de la galería también es otra pantalla. */
+    private var eligiendo = false
+
+    private val selector = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        eligiendo = false
+        if (uris.isNotEmpty()) importar(uris)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +49,10 @@ class PrivadoActivity : AppCompatActivity() {
         tvResumen = findViewById(R.id.tvResumen)
         tvVacio = findViewById(R.id.tvVacio)
         lista.visibility = View.INVISIBLE
+        findViewById<View>(R.id.btnImportar).setOnClickListener {
+            eligiendo = true
+            selector.launch(arrayOf("video/*"))
+        }
 
         if (Privado.sesionActiva) mostrar() else pedirIdentidad()
     }
@@ -89,7 +101,7 @@ class PrivadoActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!abriendoReproductor && !autenticando && !isChangingConfigurations) {
+        if (!abriendoReproductor && !autenticando && !eligiendo && !isChangingConfigurations) {
             Privado.sesionActiva = false
             finish()
         }
@@ -120,6 +132,44 @@ class PrivadoActivity : AppCompatActivity() {
             v.setOnClickListener { reproducir(video) }
             v.setOnLongClickListener { opciones(video); true }
             lista.addView(v)
+        }
+    }
+
+    private fun importar(uris: List<android.net.Uri>) {
+        val progreso = com.google.android.material.progressindicator.LinearProgressIndicator(this).apply {
+            max = uris.size
+            setPadding(64, 24, 64, 0)
+        }
+        val espera = MaterialAlertDialogBuilder(this)
+            .setTitle("Importando…")
+            .setMessage("Copiando ${uris.size} video${if (uris.size == 1) "" else "s"} a la carpeta privada.")
+            .setView(progreso)
+            .setCancelable(false)
+            .show()
+        lifecycleScope.launch {
+            var ok = 0
+            var sinBorrar = 0
+            var fallidos = 0
+            uris.forEachIndexed { i, uri ->
+                when (withContext(Dispatchers.IO) { Privado.importar(this@PrivadoActivity, uri) }) {
+                    null -> fallidos++
+                    true -> ok++
+                    false -> { ok++; sinBorrar++ }
+                }
+                progreso.setProgressCompat(i + 1, true)
+            }
+            espera.dismiss()
+            mostrar()
+            val mensaje = buildString {
+                append("$ok importado${if (ok == 1) "" else "s"}.")
+                if (sinBorrar > 0) append("\n\n$sinBorrar no se ${if (sinBorrar == 1) "pudo" else "pudieron"} borrar de la galería: bórralo${if (sinBorrar == 1) "" else "s"} tú desde la galería para que no quede copia.")
+                if (fallidos > 0) append("\n\n$fallidos no se ${if (fallidos == 1) "pudo" else "pudieron"} copiar.")
+            }
+            MaterialAlertDialogBuilder(this@PrivadoActivity)
+                .setTitle("Importación terminada")
+                .setMessage(mensaje)
+                .setPositiveButton("Entendido", null)
+                .show()
         }
     }
 

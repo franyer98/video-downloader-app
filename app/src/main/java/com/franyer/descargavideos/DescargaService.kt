@@ -49,10 +49,13 @@ class DescargaService : Service() {
         private const val NOTIF_ID = 1
         private const val NOTIF_FIN_ID = 2
 
-        fun agregar(ctx: Context, url: String, calidad: Calidad, formato: String? = null, privado: Boolean = false) = enviar(ctx,
+        fun agregar(
+            ctx: Context, url: String, calidad: Calidad, formato: String? = null,
+            privado: Boolean = false, clave: String? = null,
+        ) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_AGREGAR)
                 .putExtra("url", url).putExtra("calidad", calidad.name).putExtra("formato", formato)
-                .putExtra("privado", privado))
+                .putExtra("privado", privado).putExtra("clave", clave))
 
         fun cancelar(ctx: Context, id: String) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_CANCELAR).putExtra("id", id))
@@ -98,13 +101,14 @@ class DescargaService : Service() {
                 val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
                 val calidad = runCatching { Calidad.valueOf(intent.getStringExtra("calidad")!!) }
                     .getOrDefault(Calidad.MEJOR)
-                lanzar(Gestor.nueva(url, calidad, intent.getStringExtra("formato"), intent.getBooleanExtra("privado", false)))
+                lanzar(Gestor.nueva(url, calidad, intent.getStringExtra("formato"),
+                    intent.getBooleanExtra("privado", false), intent.getStringExtra("clave")))
             }
             ACCION_CANCELAR -> intent.getStringExtra("id")?.let { cancelarDescarga(it) }
             ACCION_REINTENTAR -> intent.getStringExtra("id")?.let { id ->
                 Gestor.obtener(id)?.let { d ->
                     Gestor.quitar(id)
-                    lanzar(Gestor.nueva(d.url, d.calidad, d.formato, d.privado))
+                    lanzar(Gestor.nueva(d.url, d.calidad, d.formato, d.privado, d.clave))
                 }
             }
         }
@@ -223,6 +227,7 @@ class DescargaService : Service() {
             }
             if (guardados.isNotEmpty()) {
                 listasEnSesion++
+                Historial.registrar(applicationContext, Historial.normalizar(d.url), d.clave)
                 Gestor.actualizar(d.id) {
                     it.copy(estado = Estado.LISTO, titulo = guardados.first().first, progreso = 100,
                         tamano = Gestor.formatoBytes(guardados.sumOf { g -> g.second }), velocidad = null,

@@ -32,6 +32,14 @@
             android:text="Toca para ver · mantén presionado para pasar a la galería o eliminar"
             android:textSize="12sp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnImportar"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Importar videos de la galería" />
+
         <TextView
             android:id="@+id/tvVacio"
             android:layout_width="match_parent"
@@ -39,7 +47,7 @@
             android:layout_marginTop="32dp"
             android:alpha="0.6"
             android:gravity="center"
-            android:text="Aún no hay videos. Activa &quot;Guardar en carpeta privada&quot; en la pantalla principal antes de descargar."
+            android:text="Aún no hay videos. Activa &quot;Guardar en carpeta privada&quot; antes de descargar, o importa videos de la galería."
             android:visibility="gone" />
 
         <LinearLayout

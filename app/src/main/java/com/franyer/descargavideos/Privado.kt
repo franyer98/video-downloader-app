@@ -67,6 +67,34 @@ object Privado {
         }.getOrNull()
     }
 
+    /**
+     * Copia un video elegido en el selector a la carpeta privada y borra el original.
+     * Devuelve null si falló la copia; true/false indica si se pudo borrar el original.
+     */
+    fun importar(ctx: Context, uri: android.net.Uri): Boolean? {
+        val nombre = ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            ?: "video_${System.currentTimeMillis()}.mp4"
+        val base = File(nombre).nameWithoutExtension
+        val ext = File(nombre).extension.ifBlank { "mp4" }
+        var destino = File(carpeta(ctx), "$base.$ext")
+        var n = 1
+        while (destino.exists()) destino = File(carpeta(ctx), "${base}_${n++}.$ext")
+
+        val copiado = runCatching {
+            ctx.contentResolver.openInputStream(uri)?.use { entrada ->
+                destino.outputStream().use { entrada.copyTo(it) }
+            } ?: error("sin acceso")
+            true
+        }.getOrDefault(false)
+        if (!copiado || destino.length() == 0L) {
+            destino.delete()
+            return null
+        }
+        return runCatching { android.provider.DocumentsContract.deleteDocument(ctx.contentResolver, uri) }
+            .getOrDefault(false)
+    }
+
     fun eliminar(ctx: Context, video: File) {
         video.delete()
         File(carpetaMiniaturas(ctx), video.name + ".jpg").delete()

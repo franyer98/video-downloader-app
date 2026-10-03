@@ -132,7 +132,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Analiza el enlace y muestra las calidades disponibles con su peso aproximado. */
+    /** Avisa y devuelve true si el video ya se descargó o ya está en descarga. */
+    private fun bloquearDuplicado(url: String, clave: String?): Boolean {
+        val mensaje = when {
+            Gestor.pendienteIgual(url, clave) != null -> "Este video ya se está descargando."
+            Historial.yaDescargado(this, Historial.normalizar(url), clave) -> "Ya descargaste este video antes."
+            else -> return false
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Video repetido")
+            .setMessage(mensaje)
+            .setPositiveButton("Entendido", null)
+            .show()
+        return true
+    }
+
     private fun elegirCalidad(url: String) {
+        // Revisión rápida por enlace, antes de analizar
+        if (bloquearDuplicado(url, null)) return
         val progreso = LinearProgressIndicator(this).apply {
             isIndeterminate = true
             setPadding(64, 24, 64, 0)
@@ -157,12 +174,15 @@ class MainActivity : AppCompatActivity() {
             if (isFinishing) return@launch
 
             resultado.onSuccess { info ->
+                // Revisión por id del video: detecta el mismo video aunque el enlace sea distinto
+                val clave = Historial.claveVideo(info.extractorKey ?: info.extractor, info.id)
+                if (bloquearDuplicado(url, clave)) return@onSuccess
                 val opciones = Calidades.opciones(info)
                 MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle(info.title ?: "Elige la calidad")
                     .setItems(opciones.map { it.etiqueta }.toTypedArray()) { _, i ->
                         val o = opciones[i]
-                        DescargaService.agregar(this@MainActivity, url, o.calidad, o.formato, Privado.activado(this@MainActivity))
+                        DescargaService.agregar(this@MainActivity, url, o.calidad, o.formato, Privado.activado(this@MainActivity), clave)
                         Toast.makeText(this@MainActivity, "Agregado a descargas", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Cancelar", null)

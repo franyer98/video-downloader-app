@@ -15,7 +15,8 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 - Videos en **H.264 + AAC** con índice al inicio: abren al instante y muestran miniatura en la galería.
 - **Optimiza para adelantar**: si el sitio entrega el video con pocos puntos de salto, lo reescribe con uno por segundo usando el chip de video del teléfono.
 - Guarda videos en **Películas/DescargaVideos** (galería) y audio en **Música/DescargaVideos**.
-- **Carpeta privada** 🔒: con el interruptor activado, los videos se guardan dentro de la app (no salen en la galería ni en el gestor de archivos). Se abre con huella o PIN, tiene reproductor propio, bloquea capturas y se cierra al salir.
+- **Carpeta privada** 🔒: con el interruptor activado, los videos se guardan dentro de la app (no salen en la galería ni en el gestor de archivos). Se abre con huella o PIN, tiene reproductor propio, bloquea capturas y se cierra al salir. Permite **importar videos de la galería** (se copian y se borra el original).
+- **Sin duplicados**: si pegas o compartes un enlace de un video ya descargado o en descarga, no lo deja bajar otra vez (compara el enlace y el id del video en el sitio).
 - Botón **Actualizar motor** para cuando un sitio cambia y deja de funcionar.
 
 ## Instalar

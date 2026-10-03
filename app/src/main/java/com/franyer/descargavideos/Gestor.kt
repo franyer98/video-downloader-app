@@ -23,6 +23,8 @@ data class Descarga(
     val formato: String? = null,
     /** Se guarda en la carpeta privada en vez de la galería. */
     val privado: Boolean = false,
+    /** Id del video en el sitio (para el historial anti-duplicados). */
+    val clave: String? = null,
     val titulo: String = url,
     val estado: Estado = Estado.EN_COLA,
     val progreso: Int = -1,
@@ -65,8 +67,10 @@ object Gestor {
         }
     }
 
-    fun nueva(url: String, calidad: Calidad, formato: String? = null, privado: Boolean = false): Descarga {
-        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad, formato, privado)
+    fun nueva(
+        url: String, calidad: Calidad, formato: String? = null, privado: Boolean = false, clave: String? = null,
+    ): Descarga {
+        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad, formato, privado, clave)
         _descargas.update { listOf(d) + it }
         return d
     }
@@ -79,6 +83,14 @@ object Gestor {
 
     fun quitar(id: String) {
         _descargas.update { lista -> lista.filterNot { it.id == id } }
+    }
+
+    /** Descarga en curso o en cola del mismo video (por enlace o por id). */
+    fun pendienteIgual(url: String, clave: String?): Descarga? {
+        val n = Historial.normalizar(url)
+        return _descargas.value.firstOrNull {
+            it.pendiente && (Historial.normalizar(it.url) == n || (clave != null && it.clave == clave))
+        }
     }
 
     fun limpiarTerminadas() {
