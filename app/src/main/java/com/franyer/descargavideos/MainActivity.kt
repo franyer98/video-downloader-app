@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnPegar).setOnClickListener { pegar() }
         btnDescargar.setOnClickListener { agregarDesdeCampo() }
         btnActualizar.setOnClickListener { actualizarMotor() }
+        findViewById<MaterialButton>(R.id.btnBuscarApp).let { b -> b.setOnClickListener { buscarAMano(b) } }
         btnLimpiar.setOnClickListener { Gestor.limpiarTerminadas() }
 
         val swPrivado = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.swPrivado)
@@ -81,17 +82,39 @@ class MainActivity : AppCompatActivity() {
         buscarActualizaciones()
     }
 
+    private fun ofrecerInstalar(nueva: Actualizador.Nueva) {
+        if (isFinishing) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Nueva versión ${nueva.versionName}")
+            .setMessage("Ya se descargó. Toca Instalar para actualizar. Si tienes descargas en curso, espera a que terminen: al instalar se cancelan.")
+            .setPositiveButton("Instalar") { _, _ -> Actualizador.instalar(this, nueva) }
+            .setNegativeButton("Luego", null)
+            .show()
+    }
+
+    /** Botón "Buscar actualización": revisa a mano y siempre dice qué encontró. */
+    private fun buscarAMano(boton: MaterialButton) {
+        boton.isEnabled = false
+        boton.text = "Buscando…"
+        lifecycleScope.launch {
+            val nueva = Actualizador.buscar(applicationContext) { boton.text = "Descargando actualización…" }
+            boton.isEnabled = true
+            boton.text = "Buscar actualización de la app"
+            when {
+                nueva != null -> ofrecerInstalar(nueva)
+                Actualizador.ultimoError != null -> Toast.makeText(this@MainActivity,
+                    "No se pudo revisar: ${Actualizador.ultimoError}. Revisa tu internet.", Toast.LENGTH_LONG).show()
+                else -> Toast.makeText(this@MainActivity,
+                    "Ya tienes la última versión (${packageManager.getPackageInfo(packageName, 0).versionName})",
+                    Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     /** Revisa si hay versión nueva de la app y actualiza yt-dlp en silencio una vez al día. */
     private fun buscarActualizaciones() {
         lifecycleScope.launch {
-            Actualizador.buscar(applicationContext)?.let { nueva ->
-                if (!isFinishing) MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle("Nueva versión ${nueva.versionName}")
-                    .setMessage("Ya se descargó. Toca Instalar para actualizar; tus descargas en curso no se pierden si esperas a que terminen.")
-                    .setPositiveButton("Instalar") { _, _ -> Actualizador.instalar(this@MainActivity, nueva) }
-                    .setNegativeButton("Luego", null)
-                    .show()
-            }
+            Actualizador.buscar(applicationContext)?.let { ofrecerInstalar(it) }
 
             val prefs = getSharedPreferences("ajustes", MODE_PRIVATE)
             val ahora = System.currentTimeMillis()

@@ -31,7 +31,11 @@ object Actualizador {
     }
 
     /** Devuelve la versión nueva ya descargada, o null si estás al día o falla la red. */
-    suspend fun buscar(ctx: Context): Nueva? = withContext(Dispatchers.IO) {
+    /** Motivo del último fallo de [buscar] (sin internet, etc.); null si no hubo error. */
+    @Volatile var ultimoError: String? = null
+
+    suspend fun buscar(ctx: Context, alDescargar: (() -> Unit)? = null): Nueva? = withContext(Dispatchers.IO) {
+        ultimoError = null
         runCatching {
             val json = JSONObject(leerTexto(URL_VERSION))
             val codigo = json.getLong("versionCode")
@@ -41,6 +45,7 @@ object Actualizador {
             val carpeta = File(ctx.cacheDir, "actualizacion").apply { mkdirs() }
             val apk = File(carpeta, "DescargaVideos-$codigo.apk")
             if (!apk.exists() || apk.length() < 1_000_000) {
+                alDescargar?.let { withContext(Dispatchers.Main) { it() } }
                 carpeta.listFiles()?.forEach { it.delete() }
                 val temp = File(carpeta, "bajando.tmp")
                 abrir(URL_APK).inputStream.use { entrada ->
@@ -49,7 +54,7 @@ object Actualizador {
                 temp.renameTo(apk)
             }
             Nueva(codigo, nombre, apk)
-        }.getOrNull()
+        }.onFailure { ultimoError = it.message ?: "error de conexión" }.getOrNull()
     }
 
     /** Abre el instalador de Android. Si falta el permiso, abre el ajuste para darlo. */
