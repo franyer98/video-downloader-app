@@ -124,5 +124,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Actualizar motor (si un sitio deja de funcionar)" />
+
+        <TextView
+            android:id="@+id/tvVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.5"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:layout_marginBottom="16dp" />
     </LinearLayout>
 </ScrollView>

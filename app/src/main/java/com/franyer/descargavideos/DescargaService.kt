@@ -160,27 +160,25 @@ class DescargaService : Service() {
             if (d.calidad != Calidad.AUDIO) {
                 // H.264 + AAC: se reproduce y genera miniatura en cualquier teléfono
                 addOption("-S", "vcodec:h264,acodec:m4a")
+                // Contenedor MP4 real (los sitios por streaming entregan MPEG-TS)
+                addOption("--remux-video", "mp4")
+                addOption("--merge-output-format", "mp4")
                 // Índice del MP4 al inicio: el video abre al instante
                 addOption("--postprocessor-args", "Merger+ffmpeg_o:-movflags +faststart")
                 addOption("--ppa", "FixupM3u8+ffmpeg_o:-movflags +faststart")
+                addOption("--ppa", "VideoRemuxer+ffmpeg_o:-movflags +faststart")
             }
+            fun video(alto: Int) =
+                "bv*[vcodec^=avc][height<=$alto]+ba/b[vcodec^=avc][height<=$alto]/bv*[height<=$alto]+ba/b[height<=$alto]/b"
             when (d.calidad) {
                 Calidad.AUDIO -> {
                     addOption("-x")
                     addOption("--audio-format", "mp3")
                 }
-                Calidad.P720 -> {
-                    addOption("-f", "bv*[height<=720]+ba/b[height<=720]/b")
-                    addOption("--merge-output-format", "mp4")
-                }
-                Calidad.P480 -> {
-                    addOption("-f", "bv*[height<=480]+ba/b[height<=480]/b")
-                    addOption("--merge-output-format", "mp4")
-                }
-                Calidad.MEJOR -> {
-                    addOption("-f", "bv*+ba/b")
-                    addOption("--merge-output-format", "mp4")
-                }
+                // "Mejor" con tope de 1080p: más alto traba el teléfono y no se nota en pantalla
+                Calidad.MEJOR -> addOption("-f", video(1080))
+                Calidad.P720 -> addOption("-f", video(720))
+                Calidad.P480 -> addOption("-f", video(480))
             }
         }
 
@@ -213,7 +211,11 @@ class DescargaService : Service() {
             if (!miniaturaLista) guardarMiniatura(d.id, carpetaMini)?.let { ruta ->
                 Gestor.actualizar(d.id) { it.copy(miniatura = ruta) }
             }
-            Gestor.actualizar(d.id) { it.copy(mensaje = "Guardando...") }
+            Gestor.actualizar(d.id) { it.copy(mensaje = "Revisando archivo...") }
+            val detalle = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                carpetaTemp.listFiles()?.filter { it.isFile }?.maxByOrNull { it.length() }?.let { analizar(it) }
+            }
+            Gestor.actualizar(d.id) { it.copy(mensaje = "Guardando...", detalle = detalle) }
             val guardados = kotlinx.coroutines.withContext(Dispatchers.IO) { moverADescargas(carpetaTemp) }
             if (guardados.isNotEmpty()) {
                 listasEnSesion++
@@ -239,6 +241,41 @@ class DescargaService : Service() {
             }
         }
     }
+
+    /** Formato real del archivo: contenedor, códec y resolución. */
+    private fun analizar(f: File): String = runCatching {
+        val cabecera = ByteArray(12)
+        f.inputStream().use { it.read(cabecera) }
+        val contenedor = when {
+            cabecera[0] == 0x47.toByte() -> "⚠️ MPEG-TS"
+            String(cabecera, 4, 4, Charsets.ISO_8859_1) == "ftyp" -> "MP4"
+            else -> f.extension.uppercase()
+        }
+        val partes = mutableListOf(contenedor)
+        val ex = android.media.MediaExtractor()
+        try {
+            ex.setDataSource(f.absolutePath)
+            for (i in 0 until ex.trackCount) {
+                val fmt = ex.getTrackFormat(i)
+                val mime = fmt.getString(android.media.MediaFormat.KEY_MIME) ?: continue
+                val codec = when {
+                    mime.contains("avc") -> "H.264"
+                    mime.contains("hevc") -> "⚠️ H.265"
+                    mime.contains("vp9") -> "⚠️ VP9"
+                    mime.contains("av01") -> "⚠️ AV1"
+                    mime.contains("mp4a") -> "AAC"
+                    mime.contains("mpeg") && mime.startsWith("audio") -> "MP3"
+                    else -> mime.substringAfter("/")
+                }
+                partes += if (mime.startsWith("video/"))
+                    "$codec ${fmt.getInteger(android.media.MediaFormat.KEY_WIDTH)}×${fmt.getInteger(android.media.MediaFormat.KEY_HEIGHT)}"
+                else codec
+            }
+        } finally {
+            ex.release()
+        }
+        partes.joinToString(" · ")
+    }.getOrDefault("formato desconocido")
 
     /** Copia la miniatura a una carpeta propia de la app (la temporal se borra al terminar). */
     private fun guardarMiniatura(id: String, carpeta: File): String? {

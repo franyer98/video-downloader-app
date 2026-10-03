@@ -30,6 +30,8 @@ data class Descarga(
     val tamano: String? = null,
     /** Velocidad actual, p. ej. "2.3 MB/s". */
     val velocidad: String? = null,
+    /** Formato real del archivo terminado, p. ej. "MP4 · H.264 1920×1080 · AAC". */
+    val detalle: String? = null,
 ) {
     val pendiente get() = estado == Estado.EN_COLA || estado == Estado.DESCARGANDO
 }

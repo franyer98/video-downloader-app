@@ -64,6 +64,8 @@ class MainActivity : AppCompatActivity() {
         btnLimpiar.setOnClickListener { Gestor.limpiarTerminadas() }
 
         pedirPermisos()
+        findViewById<TextView>(R.id.tvVersion).text = "Versión " +
+            packageManager.getPackageInfo(packageName, 0).versionName
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -253,7 +255,9 @@ class MainActivity : AppCompatActivity() {
             d.velocidad?.let { add(it) }
             if (d.eta > 0) add("faltan ${formatoTiempo(d.eta)}")
         }.joinToString(" · ")
-        d.estado == Estado.LISTO && d.tamano != null -> "${d.mensaje} · ${d.tamano}"
+        d.estado == Estado.LISTO -> listOfNotNull(
+            listOfNotNull(d.mensaje, d.tamano).joinToString(" · "), d.detalle
+        ).joinToString("\n")
         else -> d.mensaje
     }
 
