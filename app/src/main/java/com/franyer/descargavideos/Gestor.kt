@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicInteger
 
-enum class Calidad { MEJOR, P720, P480, AUDIO }
+enum class Calidad { MEJOR, AUDIO }
 
 enum class Estado { EN_COLA, DESCARGANDO, LISTO, ERROR, CANCELADO }
 

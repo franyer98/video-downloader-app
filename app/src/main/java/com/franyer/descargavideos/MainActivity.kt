@@ -119,8 +119,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun calidadElegida(): Calidad = when (rgCalidad.checkedRadioButtonId) {
-        R.id.rb720 -> Calidad.P720
-        R.id.rb480 -> Calidad.P480
         R.id.rbAudio -> Calidad.AUDIO
         else -> Calidad.MEJOR
     }

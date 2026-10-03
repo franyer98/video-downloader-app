@@ -170,17 +170,13 @@ class DescargaService : Service() {
                 addOption("--ppa", "FixupM3u8+ffmpeg_o:-movflags +faststart")
                 addOption("--ppa", "VideoRemuxer+ffmpeg_o:-movflags +faststart")
             }
-            fun video(alto: Int) =
-                "bv*[vcodec^=avc][height<=$alto]+ba/b[vcodec^=avc][height<=$alto]/bv*[height<=$alto]+ba/b[height<=$alto]/b"
             when (d.calidad) {
                 Calidad.AUDIO -> {
                     addOption("-x")
                     addOption("--audio-format", "mp3")
                 }
-                // "Mejor" con tope de 1080p: más alto traba el teléfono y no se nota en pantalla
-                Calidad.MEJOR -> addOption("-f", video(1080))
-                Calidad.P720 -> addOption("-f", video(720))
-                Calidad.P480 -> addOption("-f", video(480))
+                // Siempre la resolución más alta disponible, prefiriendo H.264 (compatible con la galería)
+                Calidad.MEJOR -> addOption("-f", "bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv*+ba/b")
             }
         }
 

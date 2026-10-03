@@ -9,7 +9,7 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 - **Miniatura** de cada video en la lista y en la notificación.
 - **Peso del archivo y velocidad** mientras descarga.
 - **Se actualiza sola**: al abrirla busca versión nueva, la baja en segundo plano y pide un toque para instalar. El motor yt-dlp se actualiza solo una vez al día.
-- Calidad: mejor disponible, 720p, 480p o **solo audio MP3**.
+- Siempre en la **máxima calidad** disponible, o **solo audio MP3**.
 - Une audio y video en MP4 automáticamente.
 - Descarga con varias conexiones (aria2c) para mayor velocidad.
 - Videos en **H.264 + AAC** con índice al inicio: abren al instante y muestran miniatura en la galería.

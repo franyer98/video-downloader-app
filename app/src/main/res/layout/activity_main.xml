@@ -61,11 +61,7 @@
             android:orientation="vertical">
 
             <RadioButton android:id="@+id/rbMejor" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="Mejor disponible" android:checked="true" />
-            <RadioButton android:id="@+id/rb720" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="720p (ahorra datos)" />
-            <RadioButton android:id="@+id/rb480" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="480p (liviano)" />
+                android:layout_height="wrap_content" android:text="Video (máxima calidad)" android:checked="true" />
             <RadioButton android:id="@+id/rbAudio" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:text="Solo audio (MP3)" />
         </RadioGroup>
