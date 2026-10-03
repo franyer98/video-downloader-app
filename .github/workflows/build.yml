@@ -29,8 +29,11 @@ jobs:
       - name: Compilar
         run: gradle assembleRelease --no-daemon --stacktrace
 
-      - name: Renombrar APK
-        run: cp app/build/outputs/apk/release/app-release.apk DescargaVideos.apk
+      - name: Renombrar APK y crear version.json
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk DescargaVideos.apk
+          echo "{\"versionCode\": $((100 + GITHUB_RUN_NUMBER)), \"versionName\": \"2.${GITHUB_RUN_NUMBER}\"}" > version.json
+          cat version.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -43,5 +46,7 @@ jobs:
           tag_name: latest
           name: DescargaVideos (última versión)
           body: "APK compilado automáticamente desde ${{ github.sha }}"
-          files: DescargaVideos.apk
+          files: |
+            DescargaVideos.apk
+            version.json
           make_latest: true

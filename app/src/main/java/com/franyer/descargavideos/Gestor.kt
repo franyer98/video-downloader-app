@@ -26,6 +26,10 @@ data class Descarga(
     val mensaje: String = "En cola",
     /** Ruta local de la miniatura del video, cuando ya se bajó. */
     val miniatura: String? = null,
+    /** Peso total del archivo, p. ej. "123.4 MB" (estimado mientras descarga). */
+    val tamano: String? = null,
+    /** Velocidad actual, p. ej. "2.3 MB/s". */
+    val velocidad: String? = null,
 ) {
     val pendiente get() = estado == Estado.EN_COLA || estado == Estado.DESCARGANDO
 }
@@ -73,5 +77,27 @@ object Gestor {
 
     fun limpiarTerminadas() {
         _descargas.update { lista -> lista.filter { it.pendiente || it.estado == Estado.ERROR } }
+    }
+
+    private val reTotalYtdlp = Regex("""of\s+~?\s*([\d.]+\s*[KMGT]?i?B)\b""")
+    private val reVelYtdlp = Regex("""at\s+([\d.]+\s*[KMGT]?i?B/s)""")
+    private val reAria = Regex("""([\d.]+[KMGT]?i?B)/([\d.]+[KMGT]?i?B)\(""")
+    private val reVelAria = Regex("""DL:([\d.]+[KMGT]?i?B)""")
+
+    /** Saca peso total y velocidad de una línea de progreso de yt-dlp o aria2c. */
+    fun leerProgreso(linea: String): Pair<String?, String?> {
+        val total = reTotalYtdlp.find(linea)?.groupValues?.get(1)
+            ?: reAria.find(linea)?.groupValues?.get(2)
+        val vel = reVelYtdlp.find(linea)?.groupValues?.get(1)
+            ?: reVelAria.find(linea)?.groupValues?.get(1)?.let { "$it/s" }
+        return limpiar(total) to limpiar(vel)
+    }
+
+    private fun limpiar(t: String?) = t?.replace("iB", "B")?.replace(" ", "")?.replace(Regex("([\\d.]+)"), "$1 ")?.trim()
+
+    fun formatoBytes(b: Long): String = when {
+        b >= 1L shl 30 -> String.format("%.2f GB", b / (1L shl 30).toDouble())
+        b >= 1L shl 20 -> String.format("%.1f MB", b / (1L shl 20).toDouble())
+        else -> String.format("%.0f KB", b / 1024.0)
     }
 }

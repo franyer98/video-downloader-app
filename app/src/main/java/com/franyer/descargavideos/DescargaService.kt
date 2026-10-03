@@ -188,9 +188,12 @@ class DescargaService : Service() {
                     }
                     val nombre = Regex("Destination: .*/(.+)$").find(linea)?.groupValues?.get(1)
                         ?.takeUnless { it.startsWith("mini.") }
+                    val (total, vel) = Gestor.leerProgreso(linea)
                     Gestor.actualizar(d.id) {
                         if (it.estado != Estado.DESCARGANDO) it
                         else it.copy(
+                            tamano = total ?: it.tamano,
+                            velocidad = vel ?: it.velocidad,
                             titulo = nombre ?: it.titulo,
                             progreso = if (prog > 0) prog.toInt() else it.progreso,
                             eta = eta,
@@ -208,7 +211,8 @@ class DescargaService : Service() {
             if (guardados.isNotEmpty()) {
                 listasEnSesion++
                 Gestor.actualizar(d.id) {
-                    it.copy(estado = Estado.LISTO, titulo = guardados.first(), progreso = 100,
+                    it.copy(estado = Estado.LISTO, titulo = guardados.first().first, progreso = 100,
+                        tamano = Gestor.formatoBytes(guardados.sumOf { g -> g.second }), velocidad = null,
                         mensaje = "✅ Guardado en Descargas/DescargaVideos")
                 }
             } else {
@@ -246,8 +250,8 @@ class DescargaService : Service() {
             "\nSi un sitio que antes servía falla, toca \"Actualizar motor\"."
     }
 
-    private fun moverADescargas(carpeta: File): List<String> {
-        val nombres = mutableListOf<String>()
+    private fun moverADescargas(carpeta: File): List<Pair<String, Long>> {
+        val nombres = mutableListOf<Pair<String, Long>>()
         carpeta.listFiles()?.filter {
             it.isFile && !it.name.endsWith(".part") && !it.name.endsWith(".aria2") &&
                 !it.name.endsWith(".ytdl") && !it.name.contains(".part-Frag")
@@ -271,7 +275,7 @@ class DescargaService : Service() {
                 ).apply { mkdirs() }
                 f.copyTo(File(destino, f.name), overwrite = true)
             }
-            nombres.add(f.name)
+            nombres.add(f.name to f.length())
         }
         return nombres
     }

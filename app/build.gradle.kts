@@ -11,8 +11,10 @@ android {
         applicationId = "com.franyer.descargavideos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.3"
+        // Cada compilación en GitHub Actions sube la versión sola (la app la usa para auto-actualizarse)
+        val corrida = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
+        versionCode = 100 + corrida
+        versionName = "2.$corrida"
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 

@@ -21,6 +21,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.yausername.youtubedl_android.YoutubeDL
@@ -71,6 +72,35 @@ class MainActivity : AppCompatActivity() {
         }
 
         manejarCompartir(intent)
+        buscarActualizaciones()
+    }
+
+    /** Revisa si hay versión nueva de la app y actualiza yt-dlp en silencio una vez al día. */
+    private fun buscarActualizaciones() {
+        lifecycleScope.launch {
+            Actualizador.buscar(applicationContext)?.let { nueva ->
+                if (!isFinishing) MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Nueva versión ${nueva.versionName}")
+                    .setMessage("Ya se descargó. Toca Instalar para actualizar; tus descargas en curso no se pierden si esperas a que terminen.")
+                    .setPositiveButton("Instalar") { _, _ -> Actualizador.instalar(this@MainActivity, nueva) }
+                    .setNegativeButton("Luego", null)
+                    .show()
+            }
+
+            val prefs = getSharedPreferences("ajustes", MODE_PRIVATE)
+            val ahora = System.currentTimeMillis()
+            if (ahora - prefs.getLong("motor_actualizado", 0) > 24 * 60 * 60 * 1000L &&
+                Gestor.descargas.value.none { it.pendiente }
+            ) {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        Gestor.asegurarMotor(applicationContext)
+                        YoutubeDL.getInstance().updateYoutubeDL(applicationContext, YoutubeDL.UpdateChannel._STABLE)
+                    }
+                    prefs.edit().putLong("motor_actualizado", ahora).apply()
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -156,8 +186,7 @@ class MainActivity : AppCompatActivity() {
         val tvEstado = v.findViewById<TextView>(R.id.tvEstado)
         val btn = v.findViewById<MaterialButton>(R.id.btnAccion)
 
-        tvEstado.text = if (d.estado == Estado.DESCARGANDO && d.progreso > 0 && d.eta > 0)
-            "${d.mensaje} · faltan ${formatoTiempo(d.eta)}" else d.mensaje
+        tvEstado.text = textoEstado(d)
 
         if (d.pendiente) {
             progreso.visibility = View.VISIBLE
@@ -208,6 +237,24 @@ class MainActivity : AppCompatActivity() {
                 iv.background = null
             }
         }
+    }
+
+    /** Ej.: "41% · 50.6 MB de 123.4 MB · 2.3 MB/s · faltan 45s" */
+    private fun textoEstado(d: Descarga): String = when {
+        d.estado == Estado.DESCARGANDO && d.progreso > 0 -> buildList {
+            add("${d.progreso}%")
+            d.tamano?.let { total ->
+                val num = total.substringBefore(" ").toDoubleOrNull()
+                val unidad = total.substringAfter(" ", "")
+                if (num != null && unidad.isNotEmpty())
+                    add(String.format("%.1f %s de %s", num * d.progreso / 100.0, unidad, total))
+                else add(total)
+            }
+            d.velocidad?.let { add(it) }
+            if (d.eta > 0) add("faltan ${formatoTiempo(d.eta)}")
+        }.joinToString(" · ")
+        d.estado == Estado.LISTO && d.tamano != null -> "${d.mensaje} · ${d.tamano}"
+        else -> d.mensaje
     }
 
     private fun formatoTiempo(seg: Long): String =
