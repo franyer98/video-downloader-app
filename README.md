@@ -12,7 +12,8 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 - Calidad: mejor disponible, 720p, 480p o **solo audio MP3**.
 - Une audio y video en MP4 automáticamente.
 - Descarga con varias conexiones (aria2c) para mayor velocidad.
-- Guarda en **Descargas/DescargaVideos** (visible en la galería y el gestor de archivos).
+- Videos en **H.264 + AAC** con índice al inicio: abren al instante y muestran miniatura en la galería.
+- Guarda videos en **Películas/DescargaVideos** (galería) y audio en **Música/DescargaVideos**.
 - Botón **Actualizar motor** para cuando un sitio cambia y deja de funcionar.
 
 ## Instalar

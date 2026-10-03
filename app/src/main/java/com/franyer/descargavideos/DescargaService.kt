@@ -157,6 +157,13 @@ class DescargaService : Service() {
             addOption("--downloader", "libaria2c.so")
             addOption("--external-downloader", "m3u8,dash:native")
             addOption("--downloader-args", "aria2c:\"-x 16 -s 16 -k 1M\"")
+            if (d.calidad != Calidad.AUDIO) {
+                // H.264 + AAC: se reproduce y genera miniatura en cualquier teléfono
+                addOption("-S", "vcodec:h264,acodec:m4a")
+                // Índice del MP4 al inicio: el video abre al instante
+                addOption("--postprocessor-args", "Merger+ffmpeg_o:-movflags +faststart")
+                addOption("--ppa", "FixupM3u8+ffmpeg_o:-movflags +faststart")
+            }
             when (d.calidad) {
                 Calidad.AUDIO -> {
                     addOption("-x")
@@ -213,7 +220,7 @@ class DescargaService : Service() {
                 Gestor.actualizar(d.id) {
                     it.copy(estado = Estado.LISTO, titulo = guardados.first().first, progreso = 100,
                         tamano = Gestor.formatoBytes(guardados.sumOf { g -> g.second }), velocidad = null,
-                        mensaje = "✅ Guardado en Descargas/DescargaVideos")
+                        mensaje = if (d.calidad == Calidad.AUDIO) "✅ Guardado en Música/DescargaVideos" else "✅ Guardado en la galería (Películas/DescargaVideos)")
                 }
             } else {
                 Gestor.actualizar(d.id) {
@@ -259,21 +266,34 @@ class DescargaService : Service() {
             val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension.lowercase())
                 ?: "application/octet-stream"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val valores = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, f.name)
-                    put(MediaStore.Downloads.MIME_TYPE, mime)
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/DescargaVideos")
+                val (coleccion, carpetaPublica) = when {
+                    mime.startsWith("video/") ->
+                        MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_MOVIES
+                    mime.startsWith("audio/") ->
+                        MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_MUSIC
+                    else -> MediaStore.Downloads.EXTERNAL_CONTENT_URI to Environment.DIRECTORY_DOWNLOADS
                 }
-                val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, valores)
-                    ?: return@forEach
+                val valores = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, f.name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "$carpetaPublica/DescargaVideos")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = contentResolver.insert(coleccion, valores) ?: return@forEach
                 contentResolver.openOutputStream(uri)?.use { out -> f.inputStream().use { it.copyTo(out) } }
+                // Al quitar "pendiente", la galería lo escanea y crea la miniatura
+                contentResolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
             } else {
                 @Suppress("DEPRECATION")
-                val destino = File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                    "DescargaVideos"
-                ).apply { mkdirs() }
-                f.copyTo(File(destino, f.name), overwrite = true)
+                val tipo = when {
+                    mime.startsWith("video/") -> Environment.DIRECTORY_MOVIES
+                    mime.startsWith("audio/") -> Environment.DIRECTORY_MUSIC
+                    else -> Environment.DIRECTORY_DOWNLOADS
+                }
+                val destino = File(Environment.getExternalStoragePublicDirectory(tipo), "DescargaVideos")
+                    .apply { mkdirs() }
+                val final = f.copyTo(File(destino, f.name), overwrite = true)
+                android.media.MediaScannerConnection.scanFile(this, arrayOf(final.absolutePath), arrayOf(mime), null)
             }
             nombres.add(f.name to f.length())
         }
@@ -360,8 +380,8 @@ class DescargaService : Service() {
                 NotificationCompat.Builder(this, CANAL_FIN)
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle("Descargas terminadas")
-                    .setContentText(if (n == 1) "1 archivo guardado en Descargas/DescargaVideos"
-                        else "$n archivos guardados en Descargas/DescargaVideos")
+                    .setContentText(if (n == 1) "1 archivo guardado en la galería"
+                        else "$n archivos guardados en la galería")
                     .setAutoCancel(true)
                     .setContentIntent(abrirApp())
                     .build())
