@@ -157,6 +157,9 @@ class DescargaService : Service() {
             addOption("--restrict-filenames")
             addOption("--newline")
             addOption("--retries", "10")
+            // Conexión lenta: espera más antes de rendirse y reintenta leer la página del sitio
+            addOption("--socket-timeout", "60")
+            addOption("--extractor-retries", "5")
             addOption("--fragment-retries", "10")
             // Videos por fragmentos (HLS/DASH): baja varios pedazos a la vez
             addOption("--concurrent-fragments", Gestor.FRAGMENTOS_PARALELOS.toString())
@@ -339,6 +342,9 @@ class DescargaService : Service() {
         msg.contains("DRM", true) -> "❌ Este sitio usa protección DRM y no se puede descargar"
         msg.contains("Unsupported URL", true) -> "❌ Sitio no compatible o el enlace no tiene video"
         msg.contains("429") -> "❌ El sitio frenó por demasiadas descargas a la vez. Reintenta en un rato."
+        msg.contains("timed out", true) || msg.contains("TransportError") || msg.contains("Connection", true) ||
+            msg.contains("Unable to download webpage", true) ->
+            "❌ El sitio tardó en responder o se cortó la conexión. Toca Reintentar."
         else -> "❌ " + (msg.lines().lastOrNull { it.isNotBlank() } ?: "Error desconocido") +
             "\nSi un sitio que antes servía falla, toca \"Actualizar motor\"."
     }

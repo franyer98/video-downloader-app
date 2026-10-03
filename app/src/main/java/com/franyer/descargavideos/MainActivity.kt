@@ -200,7 +200,12 @@ class MainActivity : AppCompatActivity() {
             val resultado = withContext(Dispatchers.IO) {
                 runCatching {
                     Gestor.asegurarMotor(applicationContext)
-                    YoutubeDL.getInstance().getInfo(url)
+                    YoutubeDL.getInstance().getInfo(
+                        com.yausername.youtubedl_android.YoutubeDLRequest(url).apply {
+                            addOption("--socket-timeout", "60")
+                            addOption("--extractor-retries", "5")
+                        }
+                    )
                 }
             }
             espera.dismiss()
