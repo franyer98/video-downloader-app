@@ -4,6 +4,7 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 
 ## Funciones
 - Aparece en el menú **Compartir** de cualquier app (Facebook, TikTok, navegador...).
+- **Descargas simultáneas**: hasta 3 a la vez, el resto en cola; cancelar o reintentar cada una.
 - Calidad: mejor disponible, 720p, 480p o **solo audio MP3**.
 - Une audio y video en MP4 automáticamente.
 - Descarga con varias conexiones (aria2c) para mayor velocidad.

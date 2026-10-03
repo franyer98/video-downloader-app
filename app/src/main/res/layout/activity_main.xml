@@ -79,28 +79,28 @@
             android:text="Preparando..."
             android:textSize="17sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCancelar"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+        <TextView
+            android:id="@+id/tvResumen"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cancelar"
-            android:visibility="gone" />
-
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progreso"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:max="100"
-            android:visibility="gone" />
+            android:layout_marginTop="20dp"
+            android:text="Descargas"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvEstado"
+            android:id="@+id/tvVacio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="" />
+            android:layout_marginTop="6dp"
+            android:alpha="0.6"
+            android:text="Agrega varios enlaces: se descargan hasta 3 a la vez y el resto espera en cola." />
+
+        <LinearLayout
+            android:id="@+id/contenedor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
         <TextView
             android:layout_width="wrap_content"
