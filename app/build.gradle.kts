@@ -54,6 +54,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
+    // Reescritura de video con el codificador por hardware del teléfono
+    implementation("androidx.media3:media3-transformer:1.4.1")
+    implementation("androidx.media3:media3-effect:1.4.1")
+    implementation("androidx.media3:media3-common:1.4.1")
+
     implementation("io.github.junkfood02.youtubedl-android:library:0.17.4")
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.17.4")
     implementation("io.github.junkfood02.youtubedl-android:aria2c:0.17.4")

@@ -13,6 +13,7 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 - Une audio y video en MP4 automáticamente.
 - Descarga con varias conexiones (aria2c) para mayor velocidad.
 - Videos en **H.264 + AAC** con índice al inicio: abren al instante y muestran miniatura en la galería.
+- **Optimiza para adelantar**: si el sitio entrega el video con pocos puntos de salto, lo reescribe con uno por segundo usando el chip de video del teléfono.
 - Guarda videos en **Películas/DescargaVideos** (galería) y audio en **Música/DescargaVideos**.
 - Botón **Actualizar motor** para cuando un sitio cambia y deja de funcionar.
 

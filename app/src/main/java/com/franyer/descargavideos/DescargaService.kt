@@ -65,6 +65,8 @@ class DescargaService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val semaforo = Semaphore(Gestor.MAX_SIMULTANEAS)
+    /** El chip de video atiende una reescritura a la vez. */
+    private val semaforoOptimizar = Semaphore(1)
     private val trabajos = ConcurrentHashMap<String, Job>()
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
@@ -212,6 +214,9 @@ class DescargaService : Service() {
                 Gestor.actualizar(d.id) { it.copy(miniatura = ruta) }
             }
             Gestor.actualizar(d.id) { it.copy(mensaje = "Revisando archivo...") }
+            val principal = carpetaTemp.listFiles()?.filter { it.isFile }?.maxByOrNull { it.length() }
+            if (principal != null && d.calidad != Calidad.AUDIO) optimizarSiHaceFalta(d, principal, carpetaTemp)
+            if (Gestor.obtener(d.id)?.estado != Estado.DESCARGANDO) return
             val detalle = kotlinx.coroutines.withContext(Dispatchers.IO) {
                 carpetaTemp.listFiles()?.filter { it.isFile }?.maxByOrNull { it.length() }?.let { analizar(it) }
             }
@@ -238,6 +243,35 @@ class DescargaService : Service() {
         } finally {
             kotlinx.coroutines.withContext(Dispatchers.IO + kotlinx.coroutines.NonCancellable) {
                 carpetaTemp.deleteRecursively()
+            }
+        }
+    }
+
+    /**
+     * Si el video trae pocos puntos de salto, lo reescribe con uno por segundo
+     * para que adelantar/devolver sea instantáneo. Si algo falla, deja el original.
+     */
+    private suspend fun optimizarSiHaceFalta(d: Descarga, archivo: File, carpeta: File) {
+        val info = kotlinx.coroutines.withContext(Dispatchers.IO) { Optimizador.medir(archivo) } ?: return
+        val separacion = info.segundosEntreSaltos ?: return
+        if (separacion <= Optimizador.UMBRAL_SEGUNDOS) return
+
+        Gestor.actualizar(d.id) { it.copy(mensaje = "En cola para optimizar...", progreso = -1, velocidad = null) }
+        semaforoOptimizar.withPermit {
+            if (Gestor.obtener(d.id)?.estado != Estado.DESCARGANDO) return
+            val salida = File(File(carpeta, "optimizado").apply { mkdirs() }, archivo.name)
+            val ok = Optimizador.reescribir(applicationContext, archivo, salida, info.alto) { pct ->
+                Gestor.actualizar(d.id) {
+                    it.copy(progreso = pct, eta = 0, mensaje = "Optimizando para adelantar $pct%")
+                }
+            }
+            if (ok) {
+                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    archivo.delete()
+                    salida.renameTo(archivo)
+                }
+            } else {
+                Gestor.actualizar(d.id) { it.copy(mensaje = "No se pudo optimizar; se guarda el original") }
             }
         }
     }
@@ -273,6 +307,9 @@ class DescargaService : Service() {
             }
         } finally {
             ex.release()
+        }
+        Optimizador.medir(f)?.segundosEntreSaltos?.let { seg ->
+            partes += if (seg > Optimizador.UMBRAL_SEGUNDOS) "⚠️ salto c/%.0fs".format(seg) else "salto c/%.0fs".format(seg)
         }
         partes.joinToString(" · ")
     }.getOrDefault("formato desconocido")
