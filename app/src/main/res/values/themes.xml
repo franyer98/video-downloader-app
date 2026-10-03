@@ -4,4 +4,8 @@
         <item name="colorPrimary">#7C4DFF</item>
         <item name="colorSecondary">#00BFA5</item>
     </style>
+    <style name="MiniaturaRedondeada">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
 </resources>

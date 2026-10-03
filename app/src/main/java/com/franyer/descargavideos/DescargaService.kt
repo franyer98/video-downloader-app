@@ -137,9 +137,14 @@ class DescargaService : Service() {
     private suspend fun ejecutar(d: Descarga) {
         Gestor.actualizar(d.id) { it.copy(estado = Estado.DESCARGANDO, mensaje = "Analizando enlace...") }
         val carpetaTemp = File(cacheDir, d.id).apply { deleteRecursively(); mkdirs() }
+        val carpetaMini = File(carpetaTemp, "miniatura").apply { mkdirs() }
+        var miniaturaLista = false
 
         val req = YoutubeDLRequest(d.url).apply {
             addOption("-o", carpetaTemp.absolutePath + "/%(title).80s.%(ext)s")
+            // Miniatura aparte (se baja antes que el video) para mostrarla en la lista
+            addOption("--write-thumbnail")
+            addOption("--output", "thumbnail:" + carpetaMini.absolutePath + "/mini.%(ext)s")
             addOption("--no-mtime")
             addOption("--no-playlist")
             addOption("--restrict-filenames")
@@ -150,7 +155,7 @@ class DescargaService : Service() {
             addOption("--concurrent-fragments", Gestor.FRAGMENTOS_PARALELOS.toString())
             // Archivos directos: aria2c con varias conexiones
             addOption("--downloader", "libaria2c.so")
-            addOption("--downloader", "m3u8,dash:native")
+            addOption("--external-downloader", "m3u8,dash:native")
             addOption("--downloader-args", "aria2c:\"-x 16 -s 16 -k 1M\"")
             when (d.calidad) {
                 Calidad.AUDIO -> {
@@ -175,7 +180,14 @@ class DescargaService : Service() {
         try {
             kotlinx.coroutines.withContext(Dispatchers.IO) {
                 YoutubeDL.getInstance().execute(req, d.id) { prog, eta, linea ->
+                    if (!miniaturaLista) {
+                        guardarMiniatura(d.id, carpetaMini)?.let { ruta ->
+                            miniaturaLista = true
+                            Gestor.actualizar(d.id) { it.copy(miniatura = ruta) }
+                        }
+                    }
                     val nombre = Regex("Destination: .*/(.+)$").find(linea)?.groupValues?.get(1)
+                        ?.takeUnless { it.startsWith("mini.") }
                     Gestor.actualizar(d.id) {
                         if (it.estado != Estado.DESCARGANDO) it
                         else it.copy(
@@ -188,6 +200,9 @@ class DescargaService : Service() {
                 }
             }
             if (Gestor.obtener(d.id)?.estado != Estado.DESCARGANDO) return
+            if (!miniaturaLista) guardarMiniatura(d.id, carpetaMini)?.let { ruta ->
+                Gestor.actualizar(d.id) { it.copy(miniatura = ruta) }
+            }
             Gestor.actualizar(d.id) { it.copy(mensaje = "Guardando...") }
             val guardados = kotlinx.coroutines.withContext(Dispatchers.IO) { moverADescargas(carpetaTemp) }
             if (guardados.isNotEmpty()) {
@@ -212,6 +227,15 @@ class DescargaService : Service() {
                 carpetaTemp.deleteRecursively()
             }
         }
+    }
+
+    /** Copia la miniatura a una carpeta propia de la app (la temporal se borra al terminar). */
+    private fun guardarMiniatura(id: String, carpeta: File): String? {
+        val f = carpeta.listFiles()?.firstOrNull {
+            it.isFile && it.length() > 0 && it.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp")
+        } ?: return null
+        val destino = File(File(filesDir, "miniaturas").apply { mkdirs() }, "$id.${f.extension}")
+        return runCatching { f.copyTo(destino, overwrite = true).absolutePath }.getOrNull()
     }
 
     private fun mensajeError(msg: String): String = when {
@@ -280,8 +304,10 @@ class DescargaService : Service() {
             append("${activas.size} descargando")
             if (enCola > 0) append(" · $enCola en cola")
         }
+        val miniatura = activas.firstNotNullOfOrNull { it.miniatura }?.let { iconoNotificacion(it) }
         return NotificationCompat.Builder(this, CANAL)
             .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setLargeIcon(miniatura)
             .setContentTitle("Descarga Videos")
             .setContentText(texto)
             .setProgress(100, promedio, conProgreso.isEmpty())
@@ -289,6 +315,20 @@ class DescargaService : Service() {
             .setOnlyAlertOnce(true)
             .setContentIntent(abrirApp())
             .build()
+    }
+
+    private var iconoRuta: String? = null
+    private var iconoBmp: android.graphics.Bitmap? = null
+
+    private fun iconoNotificacion(ruta: String): android.graphics.Bitmap? {
+        if (ruta != iconoRuta) {
+            iconoRuta = ruta
+            iconoBmp = runCatching {
+                android.graphics.BitmapFactory.decodeFile(ruta,
+                    android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 })
+            }.getOrNull()
+        }
+        return iconoBmp
     }
 
     private fun iniciarPrimerPlano() {

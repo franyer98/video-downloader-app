@@ -6,8 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -149,6 +151,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun pintar(v: View, d: Descarga) {
         v.findViewById<TextView>(R.id.tvTitulo).text = d.titulo
+        pintarMiniatura(v.findViewById(R.id.ivMiniatura), d.miniatura)
         val progreso = v.findViewById<LinearProgressIndicator>(R.id.progreso)
         val tvEstado = v.findViewById<TextView>(R.id.tvEstado)
         val btn = v.findViewById<MaterialButton>(R.id.btnAccion)
@@ -182,6 +185,27 @@ class MainActivity : AppCompatActivity() {
             Estado.LISTO -> {
                 btn.text = "Quitar"
                 btn.setOnClickListener { Gestor.quitar(d.id) }
+            }
+        }
+    }
+
+    /** Carga la miniatura solo cuando cambia, reducida para no gastar memoria. */
+    private fun pintarMiniatura(iv: ImageView, ruta: String?) {
+        if (ruta == null || iv.tag == ruta) return
+        iv.tag = ruta
+        lifecycleScope.launch {
+            val bmp = withContext(Dispatchers.IO) {
+                runCatching {
+                    val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(ruta, limites)
+                    var muestra = 1
+                    while (limites.outWidth / (muestra * 2) >= 320) muestra *= 2
+                    BitmapFactory.decodeFile(ruta, BitmapFactory.Options().apply { inSampleSize = muestra })
+                }.getOrNull()
+            }
+            if (bmp != null && iv.tag == ruta) {
+                iv.setImageBitmap(bmp)
+                iv.background = null
             }
         }
     }

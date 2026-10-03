@@ -24,6 +24,8 @@ data class Descarga(
     val progreso: Int = -1,
     val eta: Long = 0,
     val mensaje: String = "En cola",
+    /** Ruta local de la miniatura del video, cuando ya se bajó. */
+    val miniatura: String? = null,
 ) {
     val pendiente get() = estado == Estado.EN_COLA || estado == Estado.DESCARGANDO
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="10dp"
@@ -8,8 +9,25 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="14dp">
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivMiniatura"
+        android:layout_width="112dp"
+        android:layout_height="63dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginEnd="12dp"
+        android:background="#33888888"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_video_placeholder"
+        app:shapeAppearanceOverlay="@style/MiniaturaRedondeada" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,5 +68,6 @@
             android:layout_marginTop="6dp"
             android:alpha="0.8"
             android:textSize="13sp" />
+    </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
