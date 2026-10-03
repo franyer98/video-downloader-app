@@ -11,7 +11,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -32,7 +31,6 @@ import kotlinx.coroutines.withContext
 class MainActivity : AppCompatActivity() {
 
     private lateinit var etUrl: TextInputEditText
-    private lateinit var rgCalidad: RadioGroup
     private lateinit var btnDescargar: MaterialButton
     private lateinit var btnActualizar: MaterialButton
     private lateinit var btnLimpiar: MaterialButton
@@ -48,7 +46,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         etUrl = findViewById(R.id.etUrl)
-        rgCalidad = findViewById(R.id.rgCalidad)
         btnDescargar = findViewById(R.id.btnDescargar)
         btnActualizar = findViewById(R.id.btnActualizar)
         btnLimpiar = findViewById(R.id.btnLimpiar)
@@ -118,18 +115,63 @@ class MainActivity : AppCompatActivity() {
         if (faltan.isNotEmpty()) ActivityCompat.requestPermissions(this, faltan.toTypedArray(), 1)
     }
 
-    private fun calidadElegida(): Calidad = when (rgCalidad.checkedRadioButtonId) {
-        R.id.rbAudio -> Calidad.AUDIO
-        else -> Calidad.MEJOR
-    }
-
-    /** Un enlace compartido desde otra app se agrega de una vez. */
+    /** Un enlace compartido desde otra app abre el selector de calidad. */
     private fun manejarCompartir(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND) {
             val url = intent.getStringExtra(Intent.EXTRA_TEXT)?.let { extraerUrl(it) } ?: return
-            DescargaService.agregar(this, url, calidadElegida())
             intent.action = null
-            Toast.makeText(this, "Agregado a descargas", Toast.LENGTH_SHORT).show()
+            elegirCalidad(url)
+        }
+    }
+
+    /** Analiza el enlace y muestra las calidades disponibles con su peso aproximado. */
+    private fun elegirCalidad(url: String) {
+        val progreso = LinearProgressIndicator(this).apply {
+            isIndeterminate = true
+            setPadding(64, 24, 64, 0)
+        }
+        var trabajo: kotlinx.coroutines.Job? = null
+        val espera = MaterialAlertDialogBuilder(this)
+            .setTitle("Buscando calidades…")
+            .setMessage("Analizando el enlace, tarda unos segundos.")
+            .setView(progreso)
+            .setNegativeButton("Cancelar") { _, _ -> trabajo?.cancel() }
+            .setOnCancelListener { trabajo?.cancel() }
+            .show()
+
+        trabajo = lifecycleScope.launch {
+            val resultado = withContext(Dispatchers.IO) {
+                runCatching {
+                    Gestor.asegurarMotor(applicationContext)
+                    YoutubeDL.getInstance().getInfo(url)
+                }
+            }
+            espera.dismiss()
+            if (isFinishing) return@launch
+
+            resultado.onSuccess { info ->
+                val opciones = Calidades.opciones(info)
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(info.title ?: "Elige la calidad")
+                    .setItems(opciones.map { it.etiqueta }.toTypedArray()) { _, i ->
+                        val o = opciones[i]
+                        DescargaService.agregar(this@MainActivity, url, o.calidad, o.formato)
+                        Toast.makeText(this@MainActivity, "Agregado a descargas", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) return@onFailure
+                val detalle = e.message.orEmpty().lines().lastOrNull { it.isNotBlank() } ?: "error desconocido"
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("No se pudieron leer las calidades")
+                    .setMessage("$detalle\n\n¿Intento descargarlo igual en la mejor calidad?")
+                    .setPositiveButton("Descargar igual") { _, _ ->
+                        DescargaService.agregar(this@MainActivity, url, Calidad.MEJOR)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }
         }
     }
 
@@ -149,8 +191,8 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Escribe o pega un enlace válido", Toast.LENGTH_SHORT).show()
             return
         }
-        DescargaService.agregar(this, url, calidadElegida())
         etUrl.setText("")
+        elegirCalidad(url)
     }
 
     private fun dibujar(lista: List<Descarga>) {

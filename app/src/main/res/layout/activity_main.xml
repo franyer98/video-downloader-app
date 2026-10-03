@@ -47,24 +47,6 @@
             android:layout_height="wrap_content"
             android:text="Pegar del portapapeles" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Calidad"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp" />
-
-        <RadioGroup
-            android:id="@+id/rgCalidad"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <RadioButton android:id="@+id/rbMejor" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="Video (máxima calidad)" android:checked="true" />
-            <RadioButton android:id="@+id/rbAudio" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="Solo audio (MP3)" />
-        </RadioGroup>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDescargar"

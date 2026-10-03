@@ -49,9 +49,9 @@ class DescargaService : Service() {
         private const val NOTIF_ID = 1
         private const val NOTIF_FIN_ID = 2
 
-        fun agregar(ctx: Context, url: String, calidad: Calidad) = enviar(ctx,
+        fun agregar(ctx: Context, url: String, calidad: Calidad, formato: String? = null) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_AGREGAR)
-                .putExtra("url", url).putExtra("calidad", calidad.name))
+                .putExtra("url", url).putExtra("calidad", calidad.name).putExtra("formato", formato))
 
         fun cancelar(ctx: Context, id: String) = enviar(ctx,
             Intent(ctx, DescargaService::class.java).setAction(ACCION_CANCELAR).putExtra("id", id))
@@ -97,13 +97,13 @@ class DescargaService : Service() {
                 val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
                 val calidad = runCatching { Calidad.valueOf(intent.getStringExtra("calidad")!!) }
                     .getOrDefault(Calidad.MEJOR)
-                lanzar(Gestor.nueva(url, calidad))
+                lanzar(Gestor.nueva(url, calidad, intent.getStringExtra("formato")))
             }
             ACCION_CANCELAR -> intent.getStringExtra("id")?.let { cancelarDescarga(it) }
             ACCION_REINTENTAR -> intent.getStringExtra("id")?.let { id ->
                 Gestor.obtener(id)?.let { d ->
                     Gestor.quitar(id)
-                    lanzar(Gestor.nueva(d.url, d.calidad))
+                    lanzar(Gestor.nueva(d.url, d.calidad, d.formato))
                 }
             }
         }
@@ -175,8 +175,8 @@ class DescargaService : Service() {
                     addOption("-x")
                     addOption("--audio-format", "mp3")
                 }
-                // Siempre la resolución más alta disponible, prefiriendo H.264 (compatible con la galería)
-                Calidad.MEJOR -> addOption("-f", "bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv*+ba/b")
+                // La calidad elegida; si no se eligió, la más alta prefiriendo H.264 (compatible con la galería)
+                Calidad.MEJOR -> addOption("-f", d.formato ?: "bv*[vcodec^=avc]+ba/b[vcodec^=avc]/bv*+ba/b")
             }
         }
 

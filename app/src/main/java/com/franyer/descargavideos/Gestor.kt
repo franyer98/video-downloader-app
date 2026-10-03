@@ -19,6 +19,8 @@ data class Descarga(
     val id: String,
     val url: String,
     val calidad: Calidad,
+    /** Selector de formato elegido por el usuario; null = el mejor disponible. */
+    val formato: String? = null,
     val titulo: String = url,
     val estado: Estado = Estado.EN_COLA,
     val progreso: Int = -1,
@@ -61,8 +63,8 @@ object Gestor {
         }
     }
 
-    fun nueva(url: String, calidad: Calidad): Descarga {
-        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad)
+    fun nueva(url: String, calidad: Calidad, formato: String? = null): Descarga {
+        val d = Descarga("descarga-${contador.incrementAndGet()}", url, calidad, formato)
         _descargas.update { listOf(d) + it }
         return d
     }
