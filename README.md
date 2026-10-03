@@ -8,7 +8,7 @@ App Android que usa yt-dlp (vía `youtubedl-android`) con ffmpeg y aria2c para d
 - Cada video baja 8 fragmentos en paralelo (HLS/DASH) y los archivos directos usan aria2c con 16 conexiones.
 - **Miniatura** de cada video en la lista y en la notificación.
 - **Peso del archivo y velocidad** mientras descarga.
-- **Se actualiza sola**: al abrirla busca versión nueva, la baja en segundo plano y pide un toque para instalar. El motor yt-dlp se actualiza solo una vez al día. También hay un botón **Buscar actualización de la app**.
+- **Se actualiza sola**: al abrirla busca versión nueva, la baja en segundo plano y pide un toque para instalar. El motor yt-dlp se actualiza solo una vez al día. También hay un botón **Buscar actualización de la app**, y cada 6 horas revisa en segundo plano: si hay versión nueva la descarga y avisa con una notificación que instala con un toque.
 - **Elige la calidad** de cada video: muestra las resoluciones reales disponibles con su peso aproximado, más la opción de solo audio MP3.
 - Une audio y video en MP4 automáticamente.
 - Descarga con varias conexiones (aria2c) para mayor velocidad.

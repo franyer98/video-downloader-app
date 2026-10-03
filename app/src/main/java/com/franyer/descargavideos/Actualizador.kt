@@ -30,10 +30,21 @@ object Actualizador {
         return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
     }
 
-    /** Devuelve la versión nueva ya descargada, o null si estás al día o falla la red. */
     /** Motivo del último fallo de [buscar] (sin internet, etc.); null si no hubo error. */
     @Volatile var ultimoError: String? = null
 
+    /** La versión nueva que ya quedó descargada en el teléfono, si hay. */
+    fun descargada(ctx: Context): Nueva? {
+        val actual = versionActual(ctx)
+        return File(ctx.cacheDir, "actualizacion").listFiles()
+            ?.mapNotNull { f ->
+                Regex("""DescargaVideos-(\d+)\.apk""").matchEntire(f.name)?.groupValues?.get(1)?.toLongOrNull()
+                    ?.takeIf { it > actual && f.length() > 1_000_000 }?.let { Nueva(it, "2.${it - 100}", f) }
+            }
+            ?.maxByOrNull { it.versionCode }
+    }
+
+    /** Busca versión nueva y la descarga; null si estás al día o falla la red. */
     suspend fun buscar(ctx: Context, alDescargar: (() -> Unit)? = null): Nueva? = withContext(Dispatchers.IO) {
         ultimoError = null
         runCatching {

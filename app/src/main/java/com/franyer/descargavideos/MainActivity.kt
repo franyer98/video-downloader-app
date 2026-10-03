@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity() {
 
         manejarCompartir(intent)
         buscarActualizaciones()
+        ActualizacionWorker.programar(applicationContext)
     }
 
     private fun ofrecerInstalar(nueva: Actualizador.Nueva) {
@@ -112,7 +113,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Revisa si hay versión nueva de la app y actualiza yt-dlp en silencio una vez al día. */
+    private var ultimaRevision = 0L
+
+    /** Al volver a la app también revisa (máximo cada 30 minutos). */
+    override fun onRestart() {
+        super.onRestart()
+        if (System.currentTimeMillis() - ultimaRevision > 30 * 60 * 1000L) buscarActualizaciones()
+    }
+
     private fun buscarActualizaciones() {
+        ultimaRevision = System.currentTimeMillis()
         lifecycleScope.launch {
             Actualizador.buscar(applicationContext)?.let { ofrecerInstalar(it) }
 
