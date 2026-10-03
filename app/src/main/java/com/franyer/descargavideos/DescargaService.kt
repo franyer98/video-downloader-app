@@ -249,8 +249,7 @@ class DescargaService : Service() {
      */
     private suspend fun optimizarSiHaceFalta(d: Descarga, archivo: File, carpeta: File) {
         val info = kotlinx.coroutines.withContext(Dispatchers.IO) { Optimizador.medir(archivo) } ?: return
-        val separacion = info.segundosEntreSaltos ?: return
-        if (separacion <= Optimizador.UMBRAL_SEGUNDOS) return
+        if (!info.necesitaOptimizar) return
 
         Gestor.actualizar(d.id) { it.copy(mensaje = "En cola para optimizar...", progreso = -1, velocidad = null) }
         semaforoOptimizar.withPermit {
@@ -304,9 +303,14 @@ class DescargaService : Service() {
         } finally {
             ex.release()
         }
-        Optimizador.medir(f)?.segundosEntreSaltos?.let { seg ->
-            partes += if (seg > Optimizador.UMBRAL_SEGUNDOS) "⚠️ salto c/%.0fs".format(seg) else "salto c/%.0fs".format(seg)
+        val medida = Optimizador.medir(f)
+        val seg = medida?.segundosEntreSaltos
+        partes += when {
+            seg == null -> "⚠️ salto c/?"
+            seg > Optimizador.UMBRAL_SEGUNDOS -> "⚠️ salto c/%.0fs".format(seg)
+            else -> "salto c/%.0fs".format(seg)
         }
+        if (medida?.inicioRaro == true) partes += "⚠️ inicio raro"
         partes.joinToString(" · ")
     }.getOrDefault("formato desconocido")
 
