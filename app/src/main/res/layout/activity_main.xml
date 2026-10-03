@@ -94,7 +94,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:alpha="0.6"
-            android:text="Agrega varios enlaces: se descargan hasta 3 a la vez y el resto espera en cola." />
+            android:text="Agrega o comparte varios enlaces: se descargan hasta 10 a la vez, también con la app cerrada." />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLimpiar"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Limpiar terminadas"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/contenedor"
