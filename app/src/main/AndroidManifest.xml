@@ -52,9 +52,22 @@
 
         <activity
             android:name=".ReproductorActivity"
-            android:exported="false"
+            android:exported="true"
+            android:label="Reproductor Descarga Videos"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
-            android:theme="@style/Theme.DescargaVideos" />
+            android:theme="@style/Theme.DescargaVideos">
+            <!-- Aparece en "Abrir con" al tocar un video en la galería -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" android:mimeType="video/*" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".DescargaService"

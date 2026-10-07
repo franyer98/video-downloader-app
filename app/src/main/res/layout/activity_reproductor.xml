@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.franyer.descargavideos.ZonaToques xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/zonaToques"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -8,4 +9,31 @@
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-</FrameLayout>
+
+    <!-- Aviso del salto: "⏪ 10 s" a la izquierda o "10 s ⏩" a la derecha -->
+    <TextView
+        android:id="@+id/tvSaltoAtras"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|start"
+        android:layout_marginStart="48dp"
+        android:background="#88000000"
+        android:padding="14dp"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvSaltoAdelante"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginEnd="48dp"
+        android:background="#88000000"
+        android:padding="14dp"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</com.franyer.descargavideos.ZonaToques>
