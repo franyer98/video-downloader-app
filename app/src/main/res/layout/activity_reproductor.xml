@@ -10,30 +10,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Aviso del salto: "⏪ 10 s" a la izquierda o "10 s ⏩" a la derecha -->
+    <!-- Mientras arrastras: "+0:35" y "4:10 / 12:30" -->
     <TextView
-        android:id="@+id/tvSaltoAtras"
+        android:id="@+id/tvArrastre"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical|start"
-        android:layout_marginStart="48dp"
-        android:background="#88000000"
-        android:padding="14dp"
+        android:layout_gravity="center"
+        android:background="#99000000"
+        android:gravity="center"
+        android:paddingStart="24dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="14dp"
         android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvSaltoAdelante"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical|end"
-        android:layout_marginEnd="48dp"
-        android:background="#88000000"
-        android:padding="14dp"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:visibility="gone" />
 </com.franyer.descargavideos.ZonaToques>
