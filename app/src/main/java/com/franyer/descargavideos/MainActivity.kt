@@ -180,9 +180,9 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun elegirCalidad(url: String) {
+    private fun elegirCalidad(enlace: String) {
         // Revisión rápida por enlace, antes de analizar
-        if (bloquearDuplicado(url, null)) return
+        if (bloquearDuplicado(enlace, null)) return
         val progreso = LinearProgressIndicator(this).apply {
             isIndeterminate = true
             setPadding(64, 24, 64, 0)
@@ -197,6 +197,12 @@ class MainActivity : AppCompatActivity() {
             .show()
 
         trabajo = lifecycleScope.launch {
+            // Enlaces cortos de compartir (Facebook /share/…) → enlace real del video
+            val url = withContext(Dispatchers.IO) { Enlaces.resolver(enlace) }
+            if (url != enlace && bloquearDuplicado(url, null)) {
+                espera.dismiss()
+                return@launch
+            }
             val resultado = withContext(Dispatchers.IO) {
                 runCatching {
                     Gestor.asegurarMotor(applicationContext)
